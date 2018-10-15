@@ -1,24 +1,27 @@
 extern crate ansi_term;
 extern crate cargo_license;
 extern crate getopts;
+extern crate csv;
 
 use std::env;
+use ansi_term::Colour::Green;
+use std::io;
 use getopts::Options;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::btree_map::Entry::*;
-use ansi_term::Colour::Green;
 
 fn print_full_licenses(dependencies: Vec<cargo_license::Dependency>) {
+    let mut wtr = csv::Writer::from_writer(io::stdout());
+    wtr.write_record(&["library", "license", "license-text"]).unwrap();
     for dependency in dependencies {
-        println!("{}:", dependency.name);
-        if let Some(licenses) = dependency.get_license_text() {
-            for license in licenses {
-                println!("{}", license);
+        let license = dependency.get_license().unwrap_or("N/A".to_owned());
+        if let Some(license_texts) = dependency.get_license_text() {
+            for license_text in license_texts {
+                wtr.write_record(&[dependency.name.clone(), license.clone(), license_text]).unwrap();
             }
         } else {
-            let license = dependency.get_license().unwrap_or("N/A".to_owned());
-            println!("Could not find license file. License(s) specified in crate: {}", license)
+            wtr.write_record(&[dependency.name, license, "N/A".to_owned()]).unwrap();
         }
     }
 }
